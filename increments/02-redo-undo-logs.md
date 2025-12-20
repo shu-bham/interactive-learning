@@ -122,6 +122,11 @@ Recovery:
 
 ### Undo Logs
 
+**When are they written?**
+- Written **before** the data is modified in the buffer pool.
+- Every change (INSERT, UPDATE, DELETE) generates an undo log entry.
+- Undo logs themselves generate redo logs to ensure they are persistent.
+
 Undo logs serve **two purposes**:
 
 1. **Transaction Rollback**: Restore old values on ROLLBACK
@@ -175,26 +180,24 @@ SELECT @@innodb_flush_log_at_trx_commit;
 
 ```sql
 -- View current LSN values
+-- Enable InnoDB LSN metrics (use 'log_' prefix to fix ERROR 1231)
+SET GLOBAL innodb_monitor_enable = 'log_lsn_current';
+SET GLOBAL innodb_monitor_enable = 'log_lsn_flushed';
+SET GLOBAL innodb_monitor_enable = 'log_lsn_last_checkpoint';
+
+-- View LSN values from the metrics table
 SELECT 
-    VARIABLE_NAME,
-    VARIABLE_VALUE
-FROM performance_schema.global_status
-WHERE VARIABLE_NAME IN (
-    'Innodb_lsn_current',
-    'Innodb_lsn_flushed',
-    'Innodb_lsn_last_checkpoint'
-);
+    NAME,
+    COUNT AS LSN_VALUE
+FROM information_schema.innodb_metrics
+WHERE NAME LIKE 'log_lsn%';
 
 -- Calculate checkpoint age
 SELECT 
-    (SELECT VARIABLE_VALUE FROM performance_schema.global_status 
-     WHERE VARIABLE_NAME = 'Innodb_lsn_current') AS current_lsn,
-    (SELECT VARIABLE_VALUE FROM performance_schema.global_status 
-     WHERE VARIABLE_NAME = 'Innodb_lsn_last_checkpoint') AS checkpoint_lsn,
-    (SELECT VARIABLE_VALUE FROM performance_schema.global_status 
-     WHERE VARIABLE_NAME = 'Innodb_lsn_current') -
-    (SELECT VARIABLE_VALUE FROM performance_schema.global_status 
-     WHERE VARIABLE_NAME = 'Innodb_lsn_last_checkpoint') AS checkpoint_age;
+    (SELECT COUNT FROM information_schema.innodb_metrics WHERE NAME = 'log_lsn_current') AS current_lsn,
+    (SELECT COUNT FROM information_schema.innodb_metrics WHERE NAME = 'log_lsn_last_checkpoint') AS checkpoint_lsn,
+    (SELECT COUNT FROM information_schema.innodb_metrics WHERE NAME = 'log_lsn_current') -
+    (SELECT COUNT FROM information_schema.innodb_metrics WHERE NAME = 'log_lsn_last_checkpoint') AS checkpoint_age;
 
 -- View redo log write statistics
 SHOW STATUS LIKE 'Innodb_log%';
@@ -220,6 +223,8 @@ FROM performance_schema.global_status
 WHERE VARIABLE_NAME = 'Innodb_lsn_current';
 
 -- Insert 10,000 rows
+SET SESSION cte_max_recursion_depth = 10000;
+
 INSERT INTO redo_test (data)
 WITH RECURSIVE numbers AS (
     SELECT 1 AS n
@@ -247,9 +252,9 @@ SHOW VARIABLES LIKE '%undo%';
 SELECT 
     TABLESPACE_NAME,
     FILE_NAME,
-    FILE_SIZE / 1024 / 1024 AS size_mb
+    (TOTAL_EXTENTS * EXTENT_SIZE) / 1024 / 1024 AS size_mb
 FROM information_schema.FILES
-WHERE TABLESPACE_NAME LIKE '%undo%';
+WHERE TABLESPACE_NAME LIKE 'innodb_undo%';
 
 -- Monitor undo log usage
 SELECT 
