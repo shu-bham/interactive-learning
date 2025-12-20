@@ -19,6 +19,22 @@ services:
     networks:
       - pg-network
 
+  postgresql-replica:
+    image: postgres:16
+    container_name: postgresql-replica
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: rootpass
+      POSTGRES_DB: learning_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg-replica-data:/var/lib/postgresql/data
+    depends_on:
+      - postgresql-primary
+    networks:
+      - pg-network
+
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin
@@ -34,6 +50,7 @@ services:
 
 volumes:
   pg-primary-data:
+  pg-replica-data:
 
 networks:
   pg-network:
