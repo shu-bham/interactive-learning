@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgresql-primary:
+    image: postgres:16
+    container_name: postgresql-primary
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: rootpass
+      POSTGRES_DB: learning_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-primary-data:/var/lib/postgresql/data
+      - ./config/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./config/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    networks:
+      - pg-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@learning.com
+      PGADMIN_DEFAULT_PASSWORD: adminpass
+    ports:
+      - "8081:80"
+    networks:
+      - pg-network
+    depends_on:
+      - postgresql-primary
+
+volumes:
+  pg-primary-data:
+
+networks:
+  pg-network:
+    driver: bridge
