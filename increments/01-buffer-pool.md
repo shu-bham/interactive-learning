@@ -177,32 +177,52 @@ CREATE TABLE large_test (
     data VARCHAR(1000)
 ) ENGINE=InnoDB;
 
--- Insert 50,000 rows
+-- Insert 50,000 rows using a stored procedure
+DELIMITER //
+CREATE PROCEDURE insert_test_data()
+BEGIN
+    DECLARE i INT DEFAULT 1;
+    WHILE i <= 50000 DO
+        INSERT INTO large_test (data) VALUES (REPEAT('X', 1000));
+        SET i = i + 1;
+    END WHILE;
+END //
+DELIMITER ;
+
+-- Execute the procedure (this will take ~30 seconds)
+CALL insert_test_data();
+
+-- Alternative: Faster bulk insert using recursive CTE (MySQL 8.0+)
+-- This generates 50,000 rows much faster:
 INSERT INTO large_test (data)
-SELECT REPEAT('X', 1000)
-FROM (SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5) t1,
-     (SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5) t2,
-     (SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5) t3,
-     (SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5) t4;
+WITH RECURSIVE numbers AS (
+    SELECT 1 AS n
+    UNION ALL
+    SELECT n + 1 FROM numbers WHERE n < 50000
+)
+SELECT REPEAT('X', 1000) FROM numbers;
 
 -- Check table size
 SELECT 
     TABLE_NAME,
     ROUND(DATA_LENGTH / 1024 / 1024, 2) AS data_mb,
-    ROUND(INDEX_LENGTH / 1024 / 1024, 2) AS index_mb
+    ROUND(INDEX_LENGTH / 1024 / 1024, 2) AS index_mb,
+    TABLE_ROWS
 FROM information_schema.TABLES
 WHERE TABLE_NAME = 'large_test';
 
--- First scan (cold cache)
+-- First scan (cold cache) - time this!
 SELECT COUNT(*) FROM large_test;
 
--- Second scan (warm cache)
+-- Second scan (warm cache) - time this!
 SELECT COUNT(*) FROM large_test;
 
 -- Compare execution times!
 ```
 
 **Question**: Why is the second query faster?
+
+**Answer**: The first query reads pages from disk into the buffer pool. The second query finds all pages already in memory (buffer pool), so it's much faster - this is the "warm cache" effect!
 
 ## 📝 Key Takeaways
 
