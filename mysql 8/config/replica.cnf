@@ -12,7 +12,7 @@ enforce_gtid_consistency=ON
 
 # Read-only replica (enable after replication is set up)
 read_only=ON
-# super_read_only=ON  # Commented out for initial setup
+super_read_only=ON  # Commented out for initial setup
 
 # Performance Schema
 performance_schema=ON
