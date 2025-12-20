@@ -282,15 +282,15 @@ WHERE country_code = 'US' AND age > 25;
 
 -- Calculate key_len manually
 SELECT 
-    INDEX_NAME,
-    GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS columns,
+    s.INDEX_NAME,
+    GROUP_CONCAT(s.COLUMN_NAME ORDER BY s.SEQ_IN_INDEX) AS columns,
     SUM(
         CASE 
-            WHEN DATA_TYPE = 'int' THEN 4
-            WHEN DATA_TYPE = 'bigint' THEN 8
-            WHEN DATA_TYPE = 'char' THEN CHARACTER_MAXIMUM_LENGTH * 4 + 1
-            WHEN DATA_TYPE = 'varchar' THEN CHARACTER_MAXIMUM_LENGTH * 4 + 2
-            WHEN DATA_TYPE = 'timestamp' THEN 4
+            WHEN c.DATA_TYPE = 'int' THEN 4
+            WHEN c.DATA_TYPE = 'bigint' THEN 8
+            WHEN c.DATA_TYPE = 'char' THEN c.CHARACTER_MAXIMUM_LENGTH * 4 + 1
+            WHEN c.DATA_TYPE = 'varchar' THEN c.CHARACTER_MAXIMUM_LENGTH * 4 + 2
+            WHEN c.DATA_TYPE = 'timestamp' THEN 4
             ELSE 0
         END
     ) AS calculated_key_len
@@ -302,7 +302,7 @@ JOIN information_schema.COLUMNS c
 WHERE s.TABLE_SCHEMA = 'learning_db' 
   AND s.TABLE_NAME = 'users'
   AND s.INDEX_NAME = 'idx_country_status_age'
-GROUP BY INDEX_NAME;
+GROUP BY s.INDEX_NAME;
 ```
 
 ## 🎯 Challenge Exercise: Index Strategy Design
