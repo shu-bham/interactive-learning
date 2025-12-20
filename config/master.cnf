@@ -1,0 +1,58 @@
+[mysqld]
+# Server ID for replication
+server-id=1
+
+# Binary logging for replication and point-in-time recovery
+log-bin=mysql-bin
+binlog_format=ROW
+binlog_row_image=FULL
+expire_logs_days=7
+max_binlog_size=100M
+
+# GTID-based replication
+gtid_mode=ON
+enforce_gtid_consistency=ON
+
+# Performance Schema - Enable for deep monitoring
+performance_schema=ON
+performance-schema-instrument='%=ON'
+performance-schema-consumer-events-statements-history-long=ON
+performance-schema-consumer-events-waits-history-long=ON
+
+# InnoDB Configuration for Learning
+innodb_buffer_pool_size=512M
+innodb_log_file_size=128M
+innodb_flush_log_at_trx_commit=1
+innodb_flush_method=O_DIRECT
+innodb_file_per_table=ON
+innodb_buffer_pool_instances=4
+
+# Enable detailed monitoring
+innodb_monitor_enable='%'
+innodb_print_all_deadlocks=ON
+
+# Slow query log for analysis
+slow_query_log=ON
+slow_query_log_file=/var/lib/mysql/slow-query.log
+long_query_time=0.5
+log_queries_not_using_indexes=ON
+
+# General query log (use sparingly in production)
+general_log=OFF
+general_log_file=/var/lib/mysql/general.log
+
+# Connection settings
+max_connections=200
+connect_timeout=10
+
+# Query cache (disabled in MySQL 8.0, but good to know)
+# query_cache_type=0
+# query_cache_size=0
+
+# Character set
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+
+# Optimizer settings
+optimizer_trace=enabled=on
+optimizer_trace_max_mem_size=1048576

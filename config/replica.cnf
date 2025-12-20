@@ -1,0 +1,38 @@
+[mysqld]
+# Server ID for replication (must be different from master)
+server-id=2
+
+# Relay log configuration
+relay-log=mysql-relay-bin
+relay_log_recovery=ON
+
+# GTID-based replication
+gtid_mode=ON
+enforce_gtid_consistency=ON
+
+# Read-only replica
+read_only=ON
+super_read_only=ON
+
+# Performance Schema
+performance_schema=ON
+
+# InnoDB Configuration
+innodb_buffer_pool_size=512M
+innodb_log_file_size=128M
+innodb_flush_log_at_trx_commit=2
+innodb_file_per_table=ON
+
+# Slow query log
+slow_query_log=ON
+slow_query_log_file=/var/lib/mysql/slow-query.log
+long_query_time=0.5
+
+# Character set
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+
+# Replication settings
+replica_parallel_workers=4
+replica_parallel_type=LOGICAL_CLOCK
+replica_preserve_commit_order=ON
