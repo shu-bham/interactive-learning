@@ -14,6 +14,7 @@ services:
       - pg-primary-data:/var/lib/postgresql/data
       - ./config/postgresql.conf:/etc/postgresql/postgresql.conf
       - ./config/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./config/pg_ident.conf:/etc/postgresql/pg_ident.conf
       - ./init-scripts:/docker-entrypoint-initdb.d
     command: postgres -c config_file=/etc/postgresql/postgresql.conf
     networks:

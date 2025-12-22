@@ -49,12 +49,75 @@ You can choose exactly how "durable" your replication is:
 
 ## 🧪 Hands-On Exercises (25 minutes)
 
-### Exercise 1: Expanding the Lab (Adding a Replica)
+### Exercise 1: Setting up the Streaming Replica (Hands-on)
 
-We need to update our `docker-compose.yml` to add a secondary node. 
+Follow these steps to initialize your replica. Since we are using Docker, we'll use `pg_basebackup` to clone the primary's data directory.
 
-> [!NOTE]
-> For this exercise, I've prepared a specialized setup. We'll simulate a replica connection.
+#### Step 1: Create a Replication User on the Primary
+Connect to your primary database and create a user with replication privileges.
+
+```bash
+./scripts/connect-primary.sh
+```
+
+Inside `psql`:
+```sql
+-- Create a dedicated user for replication
+CREATE ROLE replicator WITH REPLICATION PASSWORD 'replpass' LOGIN;
+```
+
+#### Step 2: Prepare the Replica
+We need to "wipe" the replica's data directory and fill it with a fresh backup from the primary. 
+
+```bash
+# 1. Stop the replica container if it's running
+docker stop postgresql-replica
+
+# 2. Use a temporary container to wipe the replica volume and run pg_basebackup
+# Note: We use 'postgresql_pg-network' as the default compose network name
+docker run --rm \
+  --network postgresql_pg-network \
+  -v postgresql_pg-replica-data:/var/lib/postgresql/data \
+  postgres:16 \
+  bash -c "rm -rf /var/lib/postgresql/data/* && \
+           PGPASSWORD=replpass pg_basebackup -h postgresql-primary -D /var/lib/postgresql/data -U replicator -Fp -Xs -P -R"
+```
+
+> [!TIP]
+> If the command above fails with a "network not found" error, run `docker network ls` to find the exact name of the network created by your docker-compose (usually `[folder]_pg-network`). If it fails with an "HBA" error, ensure you have restarted your primary after editing the config files!
+
+**What do these flags mean?**
+- `-h`: Host (Primary)
+- `-D`: Data directory
+- `-U`: User
+- `-P`: Progress bar
+- `-R`: **CRITICAL** - Generates the `standby.signal` and connection settings automatically.
+
+#### Step 3: Start the Replica
+Now start the container back up. It will detect the `standby.signal` and start in Hot Standby mode.
+
+```bash
+docker start postgresql-replica
+```
+
+#### Step 4: Verify Connection
+Check the logs of the replica to see it successfully connected to the primary.
+
+```bash
+docker logs postgresql-replica
+```
+*Look for: "database system is ready to accept read-only connections"*
+
+#### Step 5: Test the Replica
+Once the replica is ready, you can connect to it using our new helper script.
+
+```bash
+./scripts/connect-replica.sh
+```
+
+Try running a `SELECT` on the users table. Then try an `INSERT`—it should fail because the replica is read-only!
+
+---
 
 ### Exercise 2: Checking Replication Status
 

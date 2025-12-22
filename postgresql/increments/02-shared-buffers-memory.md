@@ -91,7 +91,22 @@ EXPLAIN (ANALYZE, BUFFERS)
 SELECT * FROM users ORDER BY email;
 ```
 
-Look for: `Sort Method: external merge  Disk: ...`. This tells you the sort happened on disk because it didn't fit in `work_mem`.
+Look for: `Sort Method: quicksort  Memory: 25kB`. This tells you the sort fit entirely in memory. If the table were larger or `work_mem` smaller, you would see `Sort Method: external merge  Disk: ...`, indicating the sort spilled to disk.
+
+To force the disk spill, insert more rows:
+
+```sql
+-- Insert 10,000 rows to ensure we exceed 64kB work_mem
+INSERT INTO users (email, name)
+SELECT 
+    md5(random()::text) || '@example.com',
+    'User ' || i
+FROM generate_series(10001, 20000) s(i);
+
+-- Re-run the sort
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT * FROM users ORDER BY email;
+```
 
 ---
 
