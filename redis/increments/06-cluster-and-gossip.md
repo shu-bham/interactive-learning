@@ -124,7 +124,10 @@ docker exec -it redis-node-1 redis-cli -c set {user:1}:name "John"
 docker exec -it redis-node-1 redis-cli -c set {user:1}:age "30"
 
 # Verify they are on the same node
-docker exec -it redis-node-1 redis-cli -c cluster getkeysinslot $(docker exec -it redis-node-1 redis-cli cluster keyslot {user:1}) 10
+# First, get the slot number
+SLOT=$(docker exec -it redis-node-1 redis-cli cluster keyslot {user:1} | tr -d '\r')
+# Then, get the keys in that slot (on the node that owns it)
+docker exec -it redis-node-1 redis-cli -c cluster getkeysinslot $SLOT 10
 ```
 
 ### Step 7: Resharding (Moving Slots)
