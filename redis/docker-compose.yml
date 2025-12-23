@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  redis-primary:
+    image: redis:7.2-alpine
+    container_name: redis-primary
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf
+      - ./data/primary:/data
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    networks:
+      - redis-net
+
+  redis-replica:
+    image: redis:7.2-alpine
+    container_name: redis-replica
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./data/replica:/data
+    command: ["redis-server", "--replicaof", "redis-primary", "6379"]
+    depends_on:
+      - redis-primary
+    networks:
+      - redis-net
+
+networks:
+  redis-net:
+    driver: bridge
