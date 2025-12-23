@@ -46,12 +46,16 @@ Most modern deployments use **Hybrid Persistence**.
 ## 4. Hands-on Exercise: Observing Persistence
 
 ### Step 1: Triggering a Snapshot (RDB)
-Connect to your `redis-primary` and run:
+Connect to your `redis-primary` and seed some data:
+```bash
+# Seed 10,000 keys to make the snapshot meaningful
+docker exec -it redis-primary redis-cli "EVAL" "for i=1,10000 do redis.call('SET', 'p_key'..i, 'value'..i) end" 0
+```
+Then, trigger the save:
 ```redis
-SET persistence_test "snapshot_me"
 BGSAVE
 ```
-Check the output of `LASTSAVE` or look inside the `data/primary` directory for `dump.rdb`.
+Check the output of `LASTSAVE` or look inside the `redis/data/primary` directory for `dump.rdb`.
 
 ### Step 2: Enabling AOF
 By default, AOF is often disabled in base configs. Let's enable it live:

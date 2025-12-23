@@ -52,11 +52,20 @@ INFO replication
 Observe the `connected_slaves` count and the `master_repl_offset`.
 
 ### Step 2: Simulate Load and Watch Offset
-Run a loop of writes on the Primary and watch the offsets on both nodes.
+Run a variety of writes on the Primary:
 ```bash
-# In one terminal
-docker exec -it redis-primary redis-cli "EVAL" "for i=1,10000 do redis.call('SET', 'test'..i, i) end" 0
-# In another
+# Seeding Strings
+docker exec -it redis-primary redis-cli "EVAL" "for i=1,10000 do redis.call('SET', 'repl_s_'..i, i) end" 0
+
+# Seeding Hashes
+docker exec -it redis-primary redis-cli "EVAL" "for i=1,1000 do redis.call('HSET', 'repl_h_'..i, 'field1', i, 'field2', i*2) end" 0
+```
+
+Watch the offsets on both nodes to see the lag catch up:
+```bash
+# On primary
+docker exec -it redis-primary redis-cli INFO replication | grep offset
+# On replica
 docker exec -it redis-replica redis-cli INFO replication | grep offset
 ```
 
